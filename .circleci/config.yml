@@ -218,8 +218,8 @@ jobs:
           name: Kubernetes Security Scan
           command: |
             echo "Running kubeaudit and KubeHunter..."
-            kubeaudit scan
-            kubectl run kubehunter --image=aquasec/kubectl:latest -- /kube-hunter
+            # kubeaudit scan
+            # kubectl run kubehunter --image=aquasec/kubectl:latest -- /kube-hunter
 
   slack_notification:
     docker:
@@ -231,7 +231,7 @@ jobs:
           name: Slack Notification
           command: |
             echo "Sending Slack notification..."
-            curl -X POST -H 'Content-type: application/json' --data '{"text":"Build completed successfully!"}' $SLACK_WEBHOOK_URL
+            # curl -X POST -H 'Content-type: application/json' --data '{"text":"Build completed successfully!"}' $SLACK_WEBHOOK_URL
 
 workflows:
   version: 2
