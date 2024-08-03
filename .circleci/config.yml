@@ -164,9 +164,8 @@ jobs:
 
   kubernetes_deploy:
     docker:
-      - image: bitnami/kubectl:latest
-      - attach_workspace:
-          at: /project
+     image: circleci/python:3.8
+    
     steps:
       - checkout
       - run:
@@ -176,7 +175,7 @@ jobs:
 
   dast:
     docker:
-      - image: owasp/zap2docker-stable
+      image: circleci/python:3.8
     steps:
       - checkout
       - run:
@@ -186,7 +185,7 @@ jobs:
 
   kube_scan:
     docker:
-      - image: bitnami/kubectl:latest
+      image: circleci/python:3.8
     steps:
       - checkout
       - attach_workspace:
