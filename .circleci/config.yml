@@ -72,13 +72,29 @@
 version: 2.1
 
 jobs:
-  sast:
+  setup_workspace:
     docker:
       - image: circleci/python:3.8
     steps:
       - checkout
       - run:
-          name: SAST - Static Application Security Testing
+          name: Setup Workspace
+          command: |
+            echo "Setting up workspace..."
+            mkdir -p /home/circleci/project
+      - persist_to_workspace:
+          root: /home/circleci/project
+          paths:
+            - .
+
+  sast:
+    docker:
+      - image: circleci/python:3.8
+    steps:
+      - attach_workspace:
+          at: /home/circleci/project
+      - run:
+          name: SAST
           command: |
             echo "Running SAST analysis..."
 
@@ -86,7 +102,8 @@ jobs:
     docker:
       - image: circleci/python:3.8
     steps:
-      - checkout
+      - attach_workspace:
+          at: /home/circleci/project
       - run:
           name: SonarCloud Analysis
           command: |
@@ -96,7 +113,8 @@ jobs:
     docker:
       - image: circleci/python:3.8
     steps:
-      - checkout
+      - attach_workspace:
+          at: /home/circleci/project
       - run:
           name: Quality Check
           command: |
@@ -106,7 +124,8 @@ jobs:
     docker:
       - image: circleci/python:3.8
     steps:
-      - checkout
+      - attach_workspace:
+          at: /home/circleci/project
       - run:
           name: Test Build
           command: |
@@ -116,9 +135,10 @@ jobs:
     docker:
       - image: circleci/python:3.8
     steps:
-      - checkout
+      - attach_workspace:
+          at: /home/circleci/project
       - run:
-          name: Software Composition Analysis (SCA)
+          name: SCA
           command: |
             echo "Running SCA analysis..."
 
@@ -126,9 +146,10 @@ jobs:
     docker:
       - image: circleci/python:3.8
     steps:
-      - checkout
+      - attach_workspace:
+          at: /home/circleci/project
       - run:
-          name: Generate Software Bill of Materials (SBOM)
+          name: Generate SBOM
           command: |
             echo "Generating SBOM..."
 
@@ -136,7 +157,8 @@ jobs:
     docker:
       - image: circleci/python:3.8
     steps:
-      - checkout
+      - attach_workspace:
+          at: /home/circleci/project
       - run:
           name: Secret Scanning
           command: |
@@ -146,7 +168,8 @@ jobs:
     docker:
       - image: aquasec/trivy:latest
     steps:
-      - checkout
+      - attach_workspace:
+          at: /home/circleci/project
       - run:
           name: Image Scanning
           command: |
@@ -156,18 +179,19 @@ jobs:
     docker:
       - image: circleci/python:3.8
     steps:
-      - checkout
+      - attach_workspace:
+          at: /home/circleci/project
       - run:
-          name: Push Docker Image to Docker Hub
+          name: Push Docker Image
           command: |
             echo "Pushing Docker image to Docker Hub..."
 
   kubernetes_deploy:
     docker:
-     image: circleci/python:3.8
-    
+      - image: circleci/python:3.8
     steps:
-      - checkout
+      - attach_workspace:
+          at: /home/circleci/project
       - run:
           name: Kubernetes Deployment
           command: |
@@ -175,53 +199,81 @@ jobs:
 
   dast:
     docker:
-      image: circleci/python:3.8
+      - image: circleci/python:3.8
     steps:
-      - checkout
+      - attach_workspace:
+          at: /home/circleci/project
       - run:
-          name: DAST - Dynamic Application Security Testing
+          name: DAST
           command: |
             echo "Performing DAST on load balancer URL..."
 
   kube_scan:
     docker:
-      image: circleci/python:3.8
+      - image: bitnami/kubectl:latest
     steps:
-      - checkout
       - attach_workspace:
-          at: /project
+          at: /home/circleci/project
       - run:
           name: Kubernetes Security Scan
           command: |
             echo "Running kubeaudit and KubeHunter..."
-            # kubeaudit scan
-            # kubectl run kubehunter --image=aquasec/kubectl:latest -- /kube-hunter
+            kubeaudit scan
+            kubectl run kubehunter --image=aquasec/kubectl:latest -- /kube-hunter
 
   slack_notification:
     docker:
       - image: circleci/python:3.8
     steps:
-      - checkout
+      - attach_workspace:
+          at: /home/circleci/project
       - run:
           name: Slack Notification
           command: |
             echo "Sending Slack notification..."
-            # curl -X POST -H 'Content-type: application/json' --data '{"text":"Build completed successfully!"}' $SLACK_WEBHOOK_URL
+            curl -X POST -H 'Content-type: application/json' --data '{"text":"Build completed successfully!"}' $SLACK_WEBHOOK_URL
 
 workflows:
   version: 2
   ci_cd_pipeline:
     jobs:
-      - sast
-      - sonarcloud
-      - quality_check
-      - test_build
-      - sca
-      - sbom
-      - secret_scanning
-      - image_scan
-      - push_docker_image
-      - kubernetes_deploy
-      - dast
-      - kube_scan
-      - slack_notification
+      - setup_workspace
+      - sast:
+          requires:
+            - setup_workspace
+      - sonarcloud:
+          requires:
+            - sast
+      - quality_check:
+          requires:
+            - sonarcloud
+      - test_build:
+          requires:
+            - quality_check
+      - sca:
+          requires:
+            - test_build
+      - sbom:
+          requires:
+            - sca
+      - secret_scanning:
+          requires:
+            - sbom
+      - image_scan:
+          requires:
+            - secret_scanning
+      - push_docker_image:
+          requires:
+            - image_scan
+      - kubernetes_deploy:
+          requires:
+            - push_docker_image
+      - dast:
+          requires:
+            - kubernetes_deploy
+      - kube_scan:
+          requires:
+            - dast
+      - slack_notification:
+          requires:
+            - kube_scan
