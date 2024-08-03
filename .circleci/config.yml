@@ -210,7 +210,7 @@ jobs:
 
   kube_scan:
     docker:
-      - image: bitnami/kubectl:latest
+      - image: circleci/python:3.8
     steps:
       - attach_workspace:
           at: /home/circleci/project
