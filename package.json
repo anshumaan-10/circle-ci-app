@@ -11,5 +11,6 @@
   "devDependencies": {},
   "author": "Aditya",
   "license": "MIT",
+  "lint": "eslint ."
   "description": "NodeJS Project with Expres FrameWork and Running in Docker Container"
 }
