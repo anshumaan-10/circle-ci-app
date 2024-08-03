@@ -11,7 +11,7 @@ jobs:
           command: npm install
       - run:
           name: Run ESLint (SAST)
-          command: npm run lint
+          command: npx eslint .
       - run:
           name: Run Snyk (SCA)
           command: |
@@ -38,6 +38,11 @@ jobs:
     docker:
       - image: aquasec/trivy:latest
     steps:
+      - run:
+          name: Install Docker CLI
+          command: |
+            apt-get update
+            apt-get install -y docker.io
       - run:
           name: Scan Docker image with Trivy
           command: |
