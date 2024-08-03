@@ -1,4 +1,5 @@
 version: 2.1
+
 jobs:
   build_test:
     docker:
@@ -7,8 +8,17 @@ jobs:
       - checkout
       - run:
           name: Install npm dependencies
+          command: npm install --save
+      - run:
+          name: Run ESLint (SAST)
+          command: npm run lint
+      - run:
+          name: Run Snyk (SCA)
           command: |
-            npm install --save	
+            npm install -g snyk
+            snyk auth $SNYK_TOKEN
+            snyk test
+
   build_docker_image:
     docker:
       - image: circleci/node:12
@@ -16,16 +26,32 @@ jobs:
       - checkout
       - setup_remote_docker:
           docker_layer_caching: false
-      - run: 
+      - run:
           name: Build Docker image
           command: |
             docker build -t nodejswebapp1 -t anshumaan10/nodejswebapp1:latest .
             echo $DOCKER_PASSWORD | docker login -u anshumaan10 --password-stdin
             docker push anshumaan10/nodejswebapp1:latest
 
+  scan_docker_image:
+    docker:
+      - image: aquasec/trivy:latest
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: false
+      - run:
+          name: Scan Docker image with Trivy
+          command: |
+            docker pull anshumaan10/nodejswebapp1:latest
+            trivy image anshumaan10/nodejswebapp1:latest
+
 workflows:
-  build_test:
+  version: 2
+  build_and_deploy:
     jobs:
       - build_test
       - build_docker_image
-      
+      - scan_docker_image:
+          requires:
+            - build_docker_image
