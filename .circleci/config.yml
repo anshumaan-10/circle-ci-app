@@ -1,31 +1,43 @@
 version: 2.1
+
 jobs:
   build_test:
     docker:
-      - image: circleci/node:12
+      - image: circleci/node:12  # Use Node.js 12 Docker image
     steps:
-      - checkout
+      - checkout  # Check out the source code
       - run:
-          name: Install npm dependencies
+          name: Install npm dependencies  # Install necessary npm packages
           command: |
-            npm install --save	
+            npm install --save  # Install npm packages and save them to package.json
+
   build_docker_image:
     docker:
-      - image: circleci/node:12
+      - image: circleci/node:12  # Use Node.js 12 Docker image
     steps:
-      - checkout
+      - checkout  # Check out the source code
       - setup_remote_docker:
-          docker_layer_caching: false
+          docker_layer_caching: false  # Set up remote Docker with layer caching disabled
       - run:
-          name: Build Docker image
+          name: Build Docker image  # Build the Docker image
           command: |
-            docker build -t nodejswebapp1 -t anshumaan10/nodejswebapp1:latest .
-            echo $DOCKER_PASSWORD | docker login -u anshumaan10 --password-stdin
-            docker push anshumaan10/nodejswebapp1:latest
+            docker build -t nodejswebapp1 -t anshumaan10/nodejswebapp1:latest .  # Build Docker image with tag 'nodejswebapp1' and 'anshumaan10/nodejswebapp1:latest'
+            echo $DOCKER_PASSWORD | docker login -u anshumaan10 --password-stdin  # Log in to Docker Hub using the password from environment variable
+            docker push anshumaan10/nodejswebapp1:latest  # Push the Docker image to Docker Hub
+
+  scan_docker_image:
+    docker:
+      - image: aquasec/trivy:latest  # Use Trivy Docker image for scanning
+    steps:
+      - checkout  # Check out the source code
+      - run:
+          name: Scan Docker image for vulnerabilities  # Scan the Docker image for vulnerabilities
+          command: |
+            trivy image --no-progress anshumaan10/nodejswebapp1:latest  # Scan the Docker image and report vulnerabilities
 
 workflows:
   build_test:
     jobs:
-      - build_test
-      - build_docker_image
-      
+      - build_test  # Run the 'build_test' job
+      - build_docker_image  # Run the 'build_docker_image' job
+      - scan_docker_image  # Run the 'scan_docker_image' job after the Docker image is built
