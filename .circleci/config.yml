@@ -72,11 +72,23 @@
 version: 2.1
 
 jobs:
-  sast:
+  setup_workspace:
     docker:
       - image: circleci/python:3.8
     steps:
       - checkout
+      - run:
+          name: Setup Workspace
+          command: |
+            echo "Setting up workspace..."
+            mkdir -p /project
+
+  sast:
+    docker:
+      - image: circleci/python:3.8
+    steps:
+      - attach_workspace:
+          at: /project
       - run:
           name: SAST - Static Application Security Testing
           command: |
@@ -86,7 +98,8 @@ jobs:
     docker:
       - image: circleci/python:3.8
     steps:
-      - checkout
+      - attach_workspace:
+          at: /project
       - run:
           name: SonarCloud Analysis
           command: |
@@ -96,7 +109,8 @@ jobs:
     docker:
       - image: circleci/python:3.8
     steps:
-      - checkout
+      - attach_workspace:
+          at: /project
       - run:
           name: Quality Check
           command: |
@@ -106,7 +120,8 @@ jobs:
     docker:
       - image: circleci/python:3.8
     steps:
-      - checkout
+      - attach_workspace:
+          at: /project
       - run:
           name: Test Build
           command: |
@@ -116,7 +131,8 @@ jobs:
     docker:
       - image: circleci/python:3.8
     steps:
-      - checkout
+      - attach_workspace:
+          at: /project
       - run:
           name: Software Composition Analysis (SCA)
           command: |
@@ -126,7 +142,8 @@ jobs:
     docker:
       - image: circleci/python:3.8
     steps:
-      - checkout
+      - attach_workspace:
+          at: /project
       - run:
           name: Generate Software Bill of Materials (SBOM)
           command: |
@@ -136,7 +153,8 @@ jobs:
     docker:
       - image: circleci/python:3.8
     steps:
-      - checkout
+      - attach_workspace:
+          at: /project
       - run:
           name: Secret Scanning
           command: |
@@ -146,7 +164,8 @@ jobs:
     docker:
       - image: aquasec/trivy:latest
     steps:
-      - checkout
+      - attach_workspace:
+          at: /project
       - run:
           name: Image Scanning
           command: |
@@ -156,7 +175,8 @@ jobs:
     docker:
       - image: circleci/python:3.8
     steps:
-      - checkout
+      - attach_workspace:
+          at: /project
       - run:
           name: Push Docker Image to Docker Hub
           command: |
@@ -166,7 +186,8 @@ jobs:
     docker:
       - image: bitnami/kubectl:latest
     steps:
-      - checkout
+      - attach_workspace:
+          at: /project
       - run:
           name: Kubernetes Deployment
           command: |
@@ -176,7 +197,8 @@ jobs:
     docker:
       - image: owasp/zap2docker-stable
     steps:
-      - checkout
+      - attach_workspace:
+          at: /project
       - run:
           name: DAST - Dynamic Application Security Testing
           command: |
@@ -186,7 +208,8 @@ jobs:
     docker:
       - image: bitnami/kubectl:latest
     steps:
-      - checkout
+      - attach_workspace:
+          at: /project
       - run:
           name: Kubernetes Security Scan
           command: |
@@ -198,7 +221,8 @@ jobs:
     docker:
       - image: circleci/python:3.8
     steps:
-      - checkout
+      - attach_workspace:
+          at: /project
       - run:
           name: Slack Notification
           command: |
@@ -209,16 +233,43 @@ workflows:
   version: 2
   ci_cd_pipeline:
     jobs:
-      - sast
-      - sonarcloud
-      - quality_check
-      - test_build
-      - sca
-      - sbom
-      - secret_scanning
-      - image_scan
-      - push_docker_image
-      - kubernetes_deploy
-      - dast
-      - kube_scan
-      - slack_notification
+      - setup_workspace
+      - sast:
+          requires:
+            - setup_workspace
+      - sonarcloud:
+          requires:
+            - sast
+      - quality_check:
+          requires:
+            - sonarcloud
+      - test_build:
+          requires:
+            - quality_check
+      - sca:
+          requires:
+            - test_build
+      - sbom:
+          requires:
+            - sca
+      - secret_scanning:
+          requires:
+            - sbom
+      - image_scan:
+          requires:
+            - secret_scanning
+      - push_docker_image:
+          requires:
+            - image_scan
+      - kubernetes_deploy:
+          requires:
+            - push_docker_image
+      - dast:
+          requires:
+            - kubernetes_deploy
+      - kube_scan:
+          requires:
+            - dast
+      - slack_notification:
+          requires:
+            - kube_scan
