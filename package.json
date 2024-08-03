@@ -10,7 +10,9 @@
   "dependencies": {
     "express": "*"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "eslint": "^8.30.0"  // Or the version you want
+  },
   "author": "Anshumaan Singh",
   "license": "MIT"
 }
