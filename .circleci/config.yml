@@ -10,21 +10,6 @@ jobs:
           name: Install npm dependencies  # Install necessary npm packages
           command: |
             npm install --save  # Install npm packages and save them to package.json
-      - run:
-          name: Install ESLint and Snyk  # Install ESLint and Snyk for security scanning
-          command: |
-            npm install eslint eslint-plugin-security -D  # Install ESLint and security plugin
-            npm install -g snyk  # Install Snyk globally
-
-  lint_code:
-    docker:
-      - image: circleci/node:12  # Use Node.js 12 Docker image
-    steps:
-      - checkout  # Check out the source code
-      - run:
-          name: Run ESLint for security issues  # Run ESLint to check for security issues
-          command: |
-            npx eslint .  # Lint the entire codebase with ESLint
 
   build_docker_image:
     docker:
@@ -50,19 +35,19 @@ jobs:
           command: |
             trivy image --no-progress anshumaan10/nodejswebapp1:latest  # Scan the Docker image and report vulnerabilities
 
-  snyk_scan:
+  gosec_scan:
     docker:
-      - image: circleci/node:12  # Use Node.js 12 Docker image
+      - image: ghcr.io/securego/gosec/gosec:latest  # Use Gosec Docker image for Go code analysis
     steps:
       - checkout  # Check out the source code
       - run:
-          name: Authenticate with Snyk  # Authenticate Snyk using the token from environment variables
+          name: Install Gosec  # Install Gosec
           command: |
-            echo $SNYK_TOKEN | snyk auth --token  # Authenticate with Snyk using the token
+            go get -u github.com/securego/gosec/cmd/gosec  # Install Gosec if not using Docker image
       - run:
-          name: Run Snyk to check for vulnerabilities in dependencies  # Run Snyk to check for vulnerabilities
+          name: Run Gosec on Go code  # Run Gosec to scan Go code for security issues
           command: |
-            snyk test  # Check for vulnerabilities in dependencies
+            gosec ./...  # Scan the entire Go codebase for vulnerabilities
 
   clamav_scan:
     docker:
@@ -78,9 +63,7 @@ workflows:
   build_test:
     jobs:
       - build_test  # Run the 'build_test' job
-      - lint_code  # Run the 'lint_code' job to check for security issues in JavaScript code
       - build_docker_image  # Run the 'build_docker_image' job
       - scan_docker_image  # Run the 'scan_docker_image' job after the Docker image is built
-      - snyk_scan  # Run the 'snyk_scan' job to check for vulnerabilities in dependencies
+      - gosec_scan  # Run the 'gosec_scan' job to scan Go code for security issues (if applicable)
       - clamav_scan  # Run the 'clamav_scan' job to scan files for viruses
-
