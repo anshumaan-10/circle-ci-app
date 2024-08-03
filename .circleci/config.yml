@@ -1,69 +1,224 @@
+# version: 2.1
+
+# jobs:
+#   build_test:
+#     docker:
+#       - image: circleci/node:12  # Use Node.js 12 Docker image
+#     steps:
+#       - checkout  # Check out the source code
+#       - run:
+#           name: Install npm dependencies  # Install necessary npm packages
+#           command: |
+#             npm install --save  # Install npm packages and save them to package.json
+
+#   build_docker_image:
+#     docker:
+#       - image: circleci/node:12  # Use Node.js 12 Docker image
+#     steps:
+#       - checkout  # Check out the source code
+#       - setup_remote_docker:
+#           docker_layer_caching: false  # Set up remote Docker with layer caching disabled
+#       - run:
+#           name: Build Docker image  # Build the Docker image
+#           command: |
+#             docker build -t nodejswebapp1 -t anshumaan10/nodejswebapp1:latest .  # Build Docker image with tag 'nodejswebapp1' and 'anshumaan10/nodejswebapp1:latest'
+#             echo $DOCKER_PASSWORD | docker login -u anshumaan10 --password-stdin  # Log in to Docker Hub using the password from environment variable
+#             docker push anshumaan10/nodejswebapp1:latest  # Push the Docker image to Docker Hub
+
+#   scan_docker_image:
+#     docker:
+#       - image: aquasec/trivy:latest  # Use Trivy Docker image for scanning
+#     steps:
+#       - checkout  # Check out the source code
+#       - run:
+#           name: Scan Docker image for vulnerabilities  # Scan the Docker image for vulnerabilities
+#           command: |
+#             trivy image --no-progress anshumaan10/nodejswebapp1:latest  # Scan the Docker image and report vulnerabilities
+
+#   gosec_scan:
+#     docker:
+#       - image: ghcr.io/securego/gosec/gosec:latest  # Use Gosec Docker image for Go code analysis
+#     steps:
+#       - checkout  # Check out the source code
+#       - run:
+#           name: Install Gosec  # Install Gosec
+#           command: |
+#             go get -u github.com/securego/gosec/cmd/gosec  # Install Gosec if not using Docker image
+#       - run:
+#           name: Run Gosec on Go code  # Run Gosec to scan Go code for security issues
+#           command: |
+#             gosec ./...  # Scan the entire Go codebase for vulnerabilities
+
+#   clamav_scan:
+#     docker:
+#       - image: mkodockx/docker-clamav:latest  # Use ClamAV Docker image for file scanning
+#     steps:
+#       - checkout  # Check out the source code
+#       - run:
+#           name: Scan files with ClamAV  # Scan files for viruses
+#           command: |
+#             clamdscan --fdpass .  # Scan the files in the current directory
+
+# workflows:
+#   build_test:
+#     jobs:
+#       - build_test  # Run the 'build_test' job
+#       - build_docker_image  # Run the 'build_docker_image' job
+#       - scan_docker_image  # Run the 'scan_docker_image' job after the Docker image is built
+#       - gosec_scan  # Run the 'gosec_scan' job to scan Go code for security issues (if applicable)
+#       - clamav_scan  # Run the 'clamav_scan' job to scan files for viruses
+
+
 version: 2.1
 
 jobs:
-  build_test:
+  sast:
     docker:
-      - image: circleci/node:12  # Use Node.js 12 Docker image
+      - image: circleci/python:3.8
     steps:
-      - checkout  # Check out the source code
+      - checkout
       - run:
-          name: Install npm dependencies  # Install necessary npm packages
+          name: SAST - Static Application Security Testing
           command: |
-            npm install --save  # Install npm packages and save them to package.json
+            echo "Running SAST analysis..."
 
-  build_docker_image:
+  sonarcloud:
     docker:
-      - image: circleci/node:12  # Use Node.js 12 Docker image
+      - image: circleci/python:3.8
     steps:
-      - checkout  # Check out the source code
-      - setup_remote_docker:
-          docker_layer_caching: false  # Set up remote Docker with layer caching disabled
+      - checkout
       - run:
-          name: Build Docker image  # Build the Docker image
+          name: SonarCloud Analysis
           command: |
-            docker build -t nodejswebapp1 -t anshumaan10/nodejswebapp1:latest .  # Build Docker image with tag 'nodejswebapp1' and 'anshumaan10/nodejswebapp1:latest'
-            echo $DOCKER_PASSWORD | docker login -u anshumaan10 --password-stdin  # Log in to Docker Hub using the password from environment variable
-            docker push anshumaan10/nodejswebapp1:latest  # Push the Docker image to Docker Hub
+            echo "Running SonarCloud analysis..."
 
-  scan_docker_image:
+  quality_check:
     docker:
-      - image: aquasec/trivy:latest  # Use Trivy Docker image for scanning
+      - image: circleci/python:3.8
     steps:
-      - checkout  # Check out the source code
+      - checkout
       - run:
-          name: Scan Docker image for vulnerabilities  # Scan the Docker image for vulnerabilities
+          name: Quality Check
           command: |
-            trivy image --no-progress anshumaan10/nodejswebapp1:latest  # Scan the Docker image and report vulnerabilities
+            echo "Performing quality checks..."
 
-  gosec_scan:
+  test_build:
     docker:
-      - image: ghcr.io/securego/gosec/gosec:latest  # Use Gosec Docker image for Go code analysis
+      - image: circleci/python:3.8
     steps:
-      - checkout  # Check out the source code
+      - checkout
       - run:
-          name: Install Gosec  # Install Gosec
+          name: Test Build
           command: |
-            go get -u github.com/securego/gosec/cmd/gosec  # Install Gosec if not using Docker image
-      - run:
-          name: Run Gosec on Go code  # Run Gosec to scan Go code for security issues
-          command: |
-            gosec ./...  # Scan the entire Go codebase for vulnerabilities
+            echo "Building and testing the application..."
 
-  clamav_scan:
+  sca:
     docker:
-      - image: mkodockx/docker-clamav:latest  # Use ClamAV Docker image for file scanning
+      - image: circleci/python:3.8
     steps:
-      - checkout  # Check out the source code
+      - checkout
       - run:
-          name: Scan files with ClamAV  # Scan files for viruses
+          name: Software Composition Analysis (SCA)
           command: |
-            clamdscan --fdpass .  # Scan the files in the current directory
+            echo "Running SCA analysis..."
+
+  sbom:
+    docker:
+      - image: circleci/python:3.8
+    steps:
+      - checkout
+      - run:
+          name: Generate Software Bill of Materials (SBOM)
+          command: |
+            echo "Generating SBOM..."
+
+  secret_scanning:
+    docker:
+      - image: circleci/python:3.8
+    steps:
+      - checkout
+      - run:
+          name: Secret Scanning
+          command: |
+            echo "Scanning for secrets..."
+
+  image_scan:
+    docker:
+      - image: aquasec/trivy:latest
+    steps:
+      - checkout
+      - run:
+          name: Image Scanning
+          command: |
+            echo "Scanning Docker images for vulnerabilities..."
+
+  push_docker_image:
+    docker:
+      - image: circleci/python:3.8
+    steps:
+      - checkout
+      - run:
+          name: Push Docker Image to Docker Hub
+          command: |
+            echo "Pushing Docker image to Docker Hub..."
+
+  kubernetes_deploy:
+    docker:
+      - image: bitnami/kubectl:latest
+    steps:
+      - checkout
+      - run:
+          name: Kubernetes Deployment
+          command: |
+            echo "Deploying to Kubernetes..."
+
+  dast:
+    docker:
+      - image: owasp/zap2docker-stable
+    steps:
+      - checkout
+      - run:
+          name: DAST - Dynamic Application Security Testing
+          command: |
+            echo "Performing DAST on load balancer URL..."
+
+  kube_scan:
+    docker:
+      - image: bitnami/kubectl:latest
+    steps:
+      - checkout
+      - run:
+          name: Kubernetes Security Scan
+          command: |
+            echo "Running kubeaudit and KubeHunter..."
+            # kubeaudit scan
+            # kubectl run kubehunter --image=aquasec/kubectl:latest -- /kube-hunter
+
+  slack_notification:
+    docker:
+      - image: circleci/python:3.8
+    steps:
+      - checkout
+      - run:
+          name: Slack Notification
+          command: |
+            echo "Sending Slack notification..."
+            #curl -X POST -H 'Content-type: application/json' --data '{"text":"Build completed successfully!"}' $SLACK_WEBHOOK_URL
 
 workflows:
-  build_test:
+  version: 2
+  ci_cd_pipeline:
     jobs:
-      - build_test  # Run the 'build_test' job
-      - build_docker_image  # Run the 'build_docker_image' job
-      - scan_docker_image  # Run the 'scan_docker_image' job after the Docker image is built
-      - gosec_scan  # Run the 'gosec_scan' job to scan Go code for security issues (if applicable)
-      - clamav_scan  # Run the 'clamav_scan' job to scan files for viruses
+      - sast
+      - sonarcloud
+      - quality_check
+      - test_build
+      - sca
+      - sbom
+      - secret_scanning
+      - image_scan
+      - push_docker_image
+      - kubernetes_deploy
+      - dast
+      - kube_scan
+      - slack_notification
