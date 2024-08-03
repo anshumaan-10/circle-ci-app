@@ -1,16 +1,16 @@
 {
+  "name": "basic-nodejs",
+  "version": "1.0.0",
+  "description": "NodeJS Project with Express Framework and Running in Docker Container",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "lint": "eslint ."
+  },
   "dependencies": {
     "express": "*"
   },
-  "scripts": {
-    "start": "node app.js"
-  },
-  "name": "basic-nodejs",
-  "version": "1.0.0",
-  "main": "app.js",
   "devDependencies": {},
-  "author": "Aditya",
-  "license": "MIT",
-  "lint": "eslint ."
-  "description": "NodeJS Project with Expres FrameWork and Running in Docker Container"
+  "author": "Anshumaan Singh",
+  "license": "MIT"
 }
